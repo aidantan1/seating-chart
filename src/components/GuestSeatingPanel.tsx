@@ -8,6 +8,7 @@ import type { SeatingRestriction } from '@/models/types';
 export function GuestSeatingPanel() {
   const tables = useAppStore((s) => s.tables);
   const seats = useAppStore((s) => s.seats);
+  const markers = useAppStore((s) => s.markers);
   const [guestText, setGuestText] = useState('');
   const [restrictions, setRestrictions] = useState<SeatingRestriction[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -33,7 +34,7 @@ export function GuestSeatingPanel() {
       return;
     }
 
-    const popup = openSeatingWindowWithGuests(tables, seats, assignment, guests);
+    const popup = openSeatingWindowWithGuests(tables, seats, markers, assignment, guests);
 
     if (!popup) {
       setError('Pop-up blocked. Allow pop-ups for this site and try again.');

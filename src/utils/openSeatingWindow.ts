@@ -1,4 +1,4 @@
-import type { Seat, Table } from '@/models/types';
+import type { Marker, Seat, Table } from '@/models/types';
 import { orderSeatsAroundTable } from '@/utils/seatOrdering';
 import { tableColor } from '@/utils/tableColors';
 
@@ -37,15 +37,26 @@ function renderTableShape(table: Table, color: string): string {
   `;
 }
 
+function renderMarkerShape(marker: Marker): string {
+  const labelY = marker.y - 14;
+  return `
+    <g>
+      <circle cx="${marker.x}" cy="${marker.y}" r="3.5" fill="#8b9cb3"/>
+      <text x="${marker.x}" y="${labelY}" text-anchor="middle" fill="#e8edf4" font-size="13" font-weight="600" stroke="#0f1419" stroke-width="4" paint-order="stroke fill">${escapeHtml(marker.label)}</text>
+    </g>
+  `;
+}
+
 export function openSeatingWindow(
   tables: Table[],
   seats: Seat[],
+  markers: Marker[],
   assignment: Map<string, string>
 ): Window | null {
   const popup = window.open('', '_blank', 'width=1100,height=800');
   if (!popup) return null;
 
-  const bounds = computeBounds(tables, seats);
+  const bounds = computeBounds(tables, seats, markers);
   const padding = 60;
   const viewW = Math.max(bounds.width + padding * 2, 400);
   const viewH = Math.max(bounds.height + padding * 2, 300);
@@ -83,6 +94,8 @@ export function openSeatingWindow(
   const tableShapes = tables
     .map((table, i) => renderTableShape(table, tableColor(i)))
     .join('');
+
+  const markerShapes = markers.map(renderMarkerShape).join('');
 
   const tableSections = tables
     .map((table, i) => {
@@ -210,6 +223,7 @@ export function openSeatingWindow(
     <div class="map-wrap">
       <svg viewBox="${offsetX} ${offsetY} ${viewW} ${viewH}" xmlns="http://www.w3.org/2000/svg">
         ${tableShapes}
+        ${markerShapes}
         ${seatLinks}
         ${seatDots}
       </svg>
@@ -231,10 +245,11 @@ export function openSeatingWindow(
 export function openSeatingWindowWithGuests(
   tables: Table[],
   seats: Seat[],
+  markers: Marker[],
   assignment: Map<string, string>,
   allGuestNames: string[]
 ): Window | null {
-  const popup = openSeatingWindow(tables, seats, assignment);
+  const popup = openSeatingWindow(tables, seats, markers, assignment);
   if (!popup) return null;
 
   const assigned = new Set(assignment.values());
@@ -251,13 +266,16 @@ export function openSeatingWindowWithGuests(
   return popup;
 }
 
-function computeBounds(tables: Table[], seats: Seat[]) {
+function computeBounds(tables: Table[], seats: Seat[], markers: Marker[]) {
   const points: { x: number; y: number }[] = [];
   for (const t of tables) {
     points.push({ x: t.x, y: t.y }, { x: t.x + t.width, y: t.y + t.height });
   }
   for (const s of seats) {
     points.push({ x: s.x, y: s.y });
+  }
+  for (const m of markers) {
+    points.push({ x: m.x, y: m.y }, { x: m.x, y: m.y - 14 });
   }
 
   if (points.length === 0) {
